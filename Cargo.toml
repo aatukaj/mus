@@ -5,7 +5,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
-cpal = "0.15.3"
-fundsp = "0.20.0"
-macroquad = "0.4.13"
+macroquad = {version="0.4.13", features=["audio"]}
 slotmap = "1.0.7"
