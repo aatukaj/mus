@@ -3,26 +3,33 @@ use cpal::{FromSample, SizedSample};
 use fundsp::hacker::*;
 use sound::cymbal;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use std::sync::mpsc;
 
-pub fn setup() {
-    thread::spawn(|| {
-        let host = cpal::default_host();
-        let device = host
-            .default_output_device()
-            .expect("failed to find a default output device");
-        let config = device.default_output_config().unwrap();
+pub enum Command {
+    PlaySound,
 
+}
+pub fn setup() -> mpsc::Sender<Command> {
+    let (tx, rx) = mpsc::channel::<Command>();
+    let host = cpal::default_host();
+    let device = host
+        .default_output_device()
+        .expect("failed to find a default output device");
+    let config = device.default_output_config().unwrap();
+
+    thread::spawn(move || {
         match config.sample_format() {
-            cpal::SampleFormat::F32 => run::<f32>(&device, &config.into()).unwrap(),
-            cpal::SampleFormat::I16 => run::<i16>(&device, &config.into()).unwrap(),
-            cpal::SampleFormat::U16 => run::<u16>(&device, &config.into()).unwrap(),
+            cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), rx).unwrap(),
+            cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), rx).unwrap(),
+            cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), rx).unwrap(),
             _ => panic!("Unsupported format"),
         }
     });
+    tx
 }
 
-fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> Result<(), anyhow::Error>
+fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig, rx: mpsc::Receiver<Command>) -> Result<(), anyhow::Error>
 where
     T: SizedSample + FromSample<f64>,
 {
@@ -53,19 +60,26 @@ where
         None,
     )?;
     stream.play()?;
-    let pitch_hz = midi_hz(50.0);
+    let pitch_hz = midi_hz(60.0);
     let pitch =
         lfo(move |t| pitch_hz * xerp11(1.0 / (1.0), 1.0, 0.5 * (sin_hz(6.0, t) + sin_hz(6.1, t))));
 
-    sequencer.push_duration(
-        0.0,
-        2.0,
-        Fade::Smooth,
-        0.02,
-        0.2,
-        Box::new((pitch >> square()) * 0.5),
-    );
-    thread::sleep(Duration::from_secs(5));
+    // sequencer.push_duration(
+    //     0.0,
+    //     2.0,
+    //     Fade::Smooth,
+    //     0.02,
+    //     0.2,
+    //     Box::new((pitch >> square()) * 0.5),
+    // );
+    let start= Instant::now();
+    for command in rx {
+        println!("PLAY");
+        sequencer.push_duration(start.elapsed().as_secs_f64(), 1.0, Fade::Power, 0.02, 0.2, 
+            Box::new(cymbal(0)),
+        );
+
+    }
 
     Ok(())
 }

@@ -5,8 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
-assert_no_alloc = "1.1.2"
 cpal = "0.15.3"
-eframe = "0.29.1"
 fundsp = "0.20.0"
 macroquad = "0.4.13"
+slotmap = "1.0.7"
