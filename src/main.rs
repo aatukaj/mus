@@ -194,7 +194,7 @@ fn handle_input(state: &mut State, skip_mouse: bool) {
             }
         }
         Mode::Delete(sel) => {
-            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse{
+            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse {
                 match sel {
                     Some(Selection::Node(id)) => state.remove_node(*id),
                     Some(Selection::Edge(id)) => state.remove_edge(*id),
@@ -204,7 +204,7 @@ fn handle_input(state: &mut State, skip_mouse: bool) {
             }
         }
         Mode::AddEdge { first } => {
-            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse{
+            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse {
                 match *first {
                     Some(first_id) => {
                         let id;
@@ -278,15 +278,16 @@ async fn main() {
         next_spawn: 0.0,
     };
     let mut next_time_spawn = 0.0;
-    let skin = ui::root_ui().default_skin();
-
 
     // let mut nodes = vec![Node::new(10.0, 10.0), Node::new(100.0, 100.0)];
     // let edges = vec![Edge::new(0, 1)];
     loop {
-        let dt = get_frame_time();
+        let mut dt = get_frame_time();
         let m_pos = Vec2::from(mouse_position());
         state.mouse_pos = m_pos + state.camera_pos;
+        if dt >= 0.5 {
+            dt = 0.0;
+        }
         if !state.paused {
             state.time += dt;
         };
@@ -393,7 +394,9 @@ async fn main() {
             if state.particles[i].end_time <= state.time {
                 state.particles.swap_remove(i);
             } else {
-                state.particles[i].update(dt);
+                if !state.paused {
+                    state.particles[i].update(dt);
+                }
             }
         }
         clear_background(BLACK);
@@ -430,7 +433,6 @@ async fn main() {
         spawner(4);
         spawner(8);
         handle_input(&mut state, skip_mouse);
-
 
         next_frame().await;
     }
