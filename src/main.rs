@@ -136,7 +136,7 @@ impl State {
     }
 }
 
-fn handle_input(state: &mut State) {
+fn handle_input(state: &mut State, skip_mouse: bool) {
     let cam_speed = 150.0;
     if is_key_down(KeyCode::A) {
         state.camera_pos.x -= cam_speed * state.dt;
@@ -158,7 +158,7 @@ fn handle_input(state: &mut State) {
             selected_node: None,
         };
     }
-    if is_mouse_button_pressed(MouseButton::Right) {
+    if is_mouse_button_pressed(MouseButton::Right) && !skip_mouse {
         state.mode = Mode::Base {
             selected_node: None,
         };
@@ -194,7 +194,7 @@ fn handle_input(state: &mut State) {
             }
         }
         Mode::Delete(sel) => {
-            if is_mouse_button_pressed(MouseButton::Left) {
+            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse{
                 match sel {
                     Some(Selection::Node(id)) => state.remove_node(*id),
                     Some(Selection::Edge(id)) => state.remove_edge(*id),
@@ -204,7 +204,7 @@ fn handle_input(state: &mut State) {
             }
         }
         Mode::AddEdge { first } => {
-            if is_mouse_button_pressed(MouseButton::Left) {
+            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse{
                 match *first {
                     Some(first_id) => {
                         let id;
@@ -235,7 +235,7 @@ fn handle_input(state: &mut State) {
             }
         }
         Mode::UpdNode { kind } => {
-            if is_mouse_button_pressed(MouseButton::Left) {
+            if is_mouse_button_pressed(MouseButton::Left) && !skip_mouse {
                 if let Some(id) = state.hovered_node {
                     state.nodes[id].kind = kind.clone();
                 } else {
@@ -278,6 +278,8 @@ async fn main() {
         next_spawn: 0.0,
     };
     let mut next_time_spawn = 0.0;
+    let skin = ui::root_ui().default_skin();
+
 
     // let mut nodes = vec![Node::new(10.0, 10.0), Node::new(100.0, 100.0)];
     // let edges = vec![Edge::new(0, 1)];
@@ -315,7 +317,6 @@ async fn main() {
                 }
             }
         }
-        handle_input(&mut state);
         match &state.mode {
             Mode::Base { selected_node } => {
                 if let Some(v) = selected_node {
@@ -397,14 +398,21 @@ async fn main() {
         }
         clear_background(BLACK);
         draw(&state);
+        let mut skip_mouse = false;
+        // ui::root_ui().push_skin(&ui::Skin {
+        //     ..skin.clone()
+
+        // });
         for i in 0..10 {
             if ui::root_ui().button(None, i.to_string()) {
                 state.mode = Mode::UpdNode {
                     kind: NodeKind::Sample(i),
                 };
                 audio_system.play(i);
+                skip_mouse = true;
             }
         }
+        ui::root_ui().separator();
         let mut spawner = |i: usize| {
             if ui::root_ui().button(None, "S".to_string() + &i.to_string()) {
                 state.mode = Mode::UpdNode {
@@ -413,6 +421,7 @@ async fn main() {
                         next_spawn: state.time.max(next_time_spawn),
                     },
                 };
+                skip_mouse = true;
             }
         };
         spawner(1);
@@ -420,6 +429,8 @@ async fn main() {
         spawner(3);
         spawner(4);
         spawner(8);
+        handle_input(&mut state, skip_mouse);
+
 
         next_frame().await;
     }
