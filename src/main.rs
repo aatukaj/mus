@@ -1,8 +1,3 @@
-// :TODO:
-// - ui, macroquad egui??
-// - more audio options,
-// add/remove nodes and edges
-// - stretch on x-axis <- changing translate
 use macroquad::prelude::*;
 use macroquad::ui;
 mod audio;
@@ -138,16 +133,16 @@ impl State {
 
 fn handle_input(state: &mut State, skip_mouse: bool) {
     let cam_speed = 150.0;
-    if is_key_down(KeyCode::A) {
+    if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
         state.camera_pos.x -= cam_speed * state.dt;
     }
-    if is_key_down(KeyCode::D) {
+    if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
         state.camera_pos.x += cam_speed * state.dt;
     }
-    if is_key_down(KeyCode::W) {
+    if is_key_down(KeyCode::W) || is_key_down(KeyCode::Up) {
         state.camera_pos.y -= cam_speed * state.dt;
     }
-    if is_key_down(KeyCode::S) {
+    if is_key_down(KeyCode::S) || is_key_down(KeyCode::Down) {
         state.camera_pos.y += cam_speed * state.dt;
     }
     if is_key_pressed(KeyCode::Space) {
@@ -213,8 +208,10 @@ fn handle_input(state: &mut State, skip_mouse: bool) {
                         } else {
                             id = state.add_node(Node::new(state.mouse_pos.x, state.mouse_pos.y));
                         }
-                        state.add_edge(Edge::new(first_id, id));
-                        state.mode = Mode::AddEdge { first: Some(id) };
+                        if id != first_id {
+                            state.add_edge(Edge::new(first_id, id));
+                            state.mode = Mode::AddEdge { first: Some(id) };
+                        }
                     }
                     None => {
                         if let Some(id) = state.hovered_node {
